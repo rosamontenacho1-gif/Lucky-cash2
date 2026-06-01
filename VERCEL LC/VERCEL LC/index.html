@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUCKY CASH - GIRA Y GANA 🎰</title>
+<link rel="icon" type="image/png" href="favicon.png">
+
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@500;600&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+#live-counter{
+  margin-top:18px;
+  color:#00ff9d;
+  font-size:1rem;
+  font-weight:bold;
+  text-shadow:0 0 10px #00ff9d;
+  min-height:28px;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #000 url('https://i.imgur.com/4qWM46B.png') center/cover no-repeat;
+  font-family: 'Roboto', sans-serif;
+  color: #fff;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow-x: hidden;
+}
+
+body::before {
+  content:"";
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.65);
+  z-index:0;
+}
+
+.container {
+  position:relative;
+  z-index:1;
+  text-align:center;
+  max-width:95%;
+  padding:22px 20px 26px;
+  border-radius:22px;
+  background:rgba(0,0,0,0.35);
+  backdrop-filter: blur(8px);
+  box-shadow:0 0 40px rgba(255,215,0,0.15);
+}
+
+h1 {
+  font-family:'Bebas Neue', sans-serif;
+  font-size:3.4rem;
+  letter-spacing:2px;
+  color:#ffd700;
+  text-shadow:0 0 20px #ff8c00;
+  margin-bottom:6px;
+}
+
+.subtitle {
+  font-size:1.25rem;
+  font-weight:bold;
+  color:#ffd700;
+  margin-bottom:18px;
+}
+
+.flecha {
+  width:0;
+  height:0;
+  border-left:14px solid transparent;
+  border-right:14px solid transparent;
+  border-top:22px solid gold;
+  margin:0 auto -6px;
+  animation: parpadeo 1s infinite;
+}
+
+@keyframes parpadeo {
+  0%,100% {opacity:1;}
+  50% {opacity:0.5;}
+}
+
+.ruleta-wrap {
+  position:relative;
+  width:360px;
+  height:360px;
+  margin:0 auto 10px;
+}
+
+canvas {
+  display:block;
+  margin:0 auto;
+}
+
+#spin-btn {
+  margin-top:18px;
+  padding:14px 44px;
+  font-size:1.5rem;
+  font-family:'Bebas Neue', sans-serif;
+  background:linear-gradient(45deg,#ff4500,#ffb300);
+  border:none;
+  border-radius:50px;
+  color:#fff;
+  cursor:pointer;
+  animation:pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%{transform:scale(1)}
+  50%{transform:scale(1.05)}
+  100%{transform:scale(1)}
+}
+
+#spin-btn:disabled {
+  background:#444;
+  animation:none;
+}
+
+#resultado {
+  margin:18px 0 10px;
+  font-size:1.55rem;
+  font-family:'Oswald', sans-serif;
+  color:#ffd700;
+  text-shadow:0 0 15px #ff8c00;
+  min-height:52px;
+  opacity:0;
+  transform:scale(0.95);
+  transition:.4s;
+}
+
+#resultado.show {
+  opacity:1;
+  transform:scale(1);
+}
+
+#claim-btn {
+  display:none;
+  padding:14px 42px;
+  font-size:1.45rem;
+  font-family:'Bebas Neue', sans-serif;
+  background:linear-gradient(45deg,#00ff9d,#00ff00);
+  border:none;
+  border-radius:50px;
+  color:#000;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:0 0 25px rgba(0,255,157,.7);
+}
+
+#claim-btn.show {
+  display:inline-block;
+  animation:glow 1s infinite alternate;
+}
+
+@keyframes glow {
+  from{box-shadow:0 0 15px #00ff9d}
+  to{box-shadow:0 0 35px #00ff00}
+}
+
+.legal {
+  margin-top:16px;
+  font-size:.75rem;
+  color:#aaa;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h1>LUCKY CASH</h1>
+  <p class="subtitle">🎰 Girá la ruleta y ganá tu bono de bienvenida 🎉</p>
+  <div class="flecha"></div>
+
+  <div class="ruleta-wrap">
+    <canvas id="ruleta" width="360" height="360"></canvas>
+  </div>
+
+  <button id="spin-btn">GIRAR</button>
+
+  <div id="resultado"></div>
+  <button id="claim-btn">RECLAMAR MI BONO</button>
+  <div id="live-counter"></div>
+
+  <div class="legal">18+ | Juego responsable | Imperio rest in peace</div>
+</div>
+
+<canvas id="confetti" style="position:fixed;inset:0;pointer-events:none;z-index:2;"></canvas>
+
+<script>
+const WHATSAPP_NUMBERS = [
+  "541170636153",
+  "541139307812",
+  "541136952280",
+  "541131482742"
+];
+
+function getRandomWhatsapp() {
+  return WHATSAPP_NUMBERS[Math.floor(Math.random() * WHATSAPP_NUMBERS.length)];
+}
+
+const canvas = document.getElementById("ruleta");
+const ctx = canvas.getContext("2d");
+const spinBtn = document.getElementById("spin-btn");
+const resultadoDiv = document.getElementById("resultado");
+const claimBtn = document.getElementById("claim-btn");
+
+const premios = [
+  "25%",
+  "1500",
+  "30%",
+  "2000",
+  "35%",
+  "2500",
+  "20%",
+  "1000"
+];
+
+const colores = [
+ "#e10600", // rojo casino
+ "#111111", // negro
+ "#e10600",  
+ "#111111",
+ "#e10600",  
+ "#111111",
+ "#e10600",  
+ "#111111"
+];
+
+const slices = premios.length;
+const sliceAngle = 2 * Math.PI / slices;
+
+let rotation = 0;
+let girando = false;
+let yaGiro = false;
+
+function dibujarRuleta() {
+  ctx.clearRect(0,0,360,360);
+  ctx.save();
+  ctx.translate(180,180);
+  ctx.rotate(rotation);
+
+  for(let i=0;i<slices;i++){
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.fillStyle = colores[i];
+    ctx.arc(0,0,160,i*sliceAngle,(i+1)*sliceAngle);
+    ctx.fill();
+
+    ctx.save();
+    ctx.rotate(i*sliceAngle + sliceAngle/2);
+    ctx.translate(110,0);
+    ctx.rotate(Math.PI/2);
+    ctx.fillStyle="#fff";
+    ctx.font="600 24px Oswald";
+    ctx.textAlign="center";
+    ctx.fillText(premios[i],0,8);
+    ctx.restore();
+  }
+
+  ctx.strokeStyle="#ffcc00";
+ctx.shadowBlur=12;
+ctx.shadowColor="#ffcc00";
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.arc(0,0,158,0,2*Math.PI);
+  ctx.stroke();
+
+  ctx.fillStyle="#ffcc00";
+  ctx.beginPath();
+  ctx.arc(0,0,22,0,2*Math.PI);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+dibujarRuleta();
+
+spinBtn.onclick = () => {
+  if(girando || yaGiro) return;
+
+  girando = true;
+  spinBtn.disabled = true;
+  resultadoDiv.classList.remove("show");
+  claimBtn.classList.remove("show");
+
+  const giro = Math.random()*2*Math.PI + 6*Math.PI;
+  const inicio = rotation;
+  const duracion = 3000;
+  const start = performance.now();
+
+  function animar(t){
+    const p = Math.min((t-start)/duracion,1);
+    const ease = 1-Math.pow(1-p,3);
+    rotation = inicio + giro*ease;
+    dibujarRuleta();
+
+    if(p<1){
+      requestAnimationFrame(animar);
+    } else {
+      girando=false;
+      yaGiro=true;
+
+      const normalized = (rotation + Math.PI/2)%(2*Math.PI);
+      const index = Math.floor((2*Math.PI - normalized)/sliceAngle)%slices;
+      const premio = premios[index];
+
+      let textoPantalla = premio.includes("%")
+        ? `🎉 Ganaste un bono del ${premio} 🎉`
+        : `🎉 Ganaste ${premio} fichas de bienvenida 🎉`;
+
+      let textoWhatsapp = premio.includes("%")
+        ? `Hola, quiero reclamar mi bono del ${premio}`
+        : `Hola, quiero reclamar mi bono de bienvenida, gané ${premio} fichas`;
+
+      resultadoDiv.textContent = textoPantalla;
+      resultadoDiv.classList.add("show");
+
+      lanzarConfetti();
+
+      const numero = getRandomWhatsapp();
+      const link = `https://wa.me/${numero}?text=${encodeURIComponent(textoWhatsapp)}`;
+      claimBtn.classList.add("show");
+      claimBtn.onclick = () => window.open(link,"_blank");
+    }
+  }
+  requestAnimationFrame(animar);
+};
+</script>
+
+<script>
+const confettiCanvas = document.getElementById("confetti");
+const confettiCtx = confettiCanvas.getContext("2d");
+
+function resizeConfetti() {
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+}
+
+resizeConfetti();
+window.addEventListener("resize", resizeConfetti);
+
+function lanzarConfetti() {
+  const pieces = [];
+  const cantidad = 180;
+  const centroX = window.innerWidth / 2;
+  const centroY = 0;
+
+  for (let i = 0; i < cantidad; i++) {
+    pieces.push({
+      x: centroX + (Math.random() - 0.5) * 500,
+      y: centroY - 20,
+      size: Math.random() * 6 + 4,
+      speedY: Math.random() * 7 + 7,
+      speedX: (Math.random() - 0.5) * 4,
+      gravity: 0.15,
+      color: `hsl(${Math.random()*360}, 100%, 50%)`
+    });
+  }
+
+  function animar() {
+    confettiCtx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+
+    pieces.forEach(p => {
+      p.x += p.speedX;
+      p.y += p.speedY;
+      p.speedY += p.gravity;
+
+      confettiCtx.fillStyle = p.color;
+      confettiCtx.fillRect(p.x, p.y, p.size, p.size*0.6);
+    });
+
+    if (pieces.some(p => p.y < window.innerHeight + 50)) {
+      requestAnimationFrame(animar);
+    }
+  }
+
+  animar();
+}
+
+const nombres = [
+"Juan","Lucas","Nico","Mati","Agus","Santi","Bruno","Franco",
+"Thiago","Tomás","Facu","Gonza","Alan","Kevin","Lautaro","Emi",
+"Juli","Nacho","Fede","Ramiro","Axel","Benja","Dylan","Mateo",
+
+"Sofi","Lucía","Valen","Camila","Martina","Flor","Mica","Rocio",
+"Milagros","Julieta","Paula","Melina","Lara","Bianca","Aylen","Noe",
+"Karen","Cande","Pia","Sol","Antonella","Brisa","Dana","Mora"
+];
+
+
+const bonos = ["20%","25%","30%","35%"];
+const fichas = ["1000","1500","2000","2500"];
+
+const liveCounter = document.getElementById("live-counter");
+
+function rand(arr){
+  return arr[Math.floor(Math.random()*arr.length)];
+}
+
+function tiempoRandom(){
+
+  const tiempos = [
+    "hace unas horas",
+    "hace 1 hora",
+    "hace 30 minutos",
+    "hace 45 minutos",
+    "hace 18 minutos",
+    "hace 7 minutos",
+    "hace 2 horas",
+    "hace 4 minutos"
+  ];
+
+  return rand(tiempos);
+}
+
+function generarMensaje(){
+
+  const nombre = rand(nombres);
+  const tiempo = tiempoRandom();
+
+  const tipo = Math.floor(Math.random()*3);
+
+  if(tipo===0){
+
+    const monto =
+      Math.floor(Math.random()*45000+5000)
+      .toLocaleString("es-AR");
+
+    return `🔥 ${nombre} retiró $${monto} · ${tiempo}`;
+  }
+
+  if(tipo===1){
+    return `🎁 ${nombre} reclamó su bono del ${rand(bonos)} · ${tiempo}`;
+  }
+
+  return `🎰 ${nombre} ganó ${rand(fichas)} fichas · ${tiempo}`;
+}
+function actualizarCounter(){
+
+  liveCounter.style.opacity="0";
+
+  setTimeout(()=>{
+
+    liveCounter.textContent = generarMensaje();
+
+    liveCounter.style.opacity="1";
+
+  },300);
+}
+
+actualizarCounter();
+
+setInterval(actualizarCounter, 12000);
+
+</script>
+
+...
+<script>
+document.addEventListener('contextmenu', event => event.preventDefault());
+
+document.addEventListener('keydown', function(e) {
+  if (
+    e.key === 'F12' ||
+    (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+    (e.ctrlKey && e.key === 'u')
+  ) {
+    e.preventDefault();
+  }
+});
+</script>
+
+</body>
+</html>
