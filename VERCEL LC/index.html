@@ -455,6 +455,20 @@ actualizarCounter();
 setInterval(actualizarCounter, 12000);
 
 </script>
+...
+<script>
+document.addEventListener('contextmenu', event => event.preventDefault());
+
+document.addEventListener('keydown', function(e) {
+  if (
+    e.key === 'F12' ||
+    (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+    (e.ctrlKey && e.key === 'u')
+  ) {
+    e.preventDefault();
+  }
+});
+</script>
 
 </body>
 </html>
